@@ -65,6 +65,7 @@ const MolstarViewr = () => {
       name: file.name,
       file: file,
     };
+    await plugin.init();
     console.log("plugin in file select:", plugin);
     try {
       // Step 1: Read the file
@@ -73,10 +74,9 @@ const MolstarViewr = () => {
         label: file.name,
         isBinary: false,
       });
-
       const trajectory = await plugin.builders.structure.parseTrajectory(
         data.data.ref,
-        "gro"
+        "mmcif"
       );
 
       await plugin.builders.structure.hierarchy.applyPreset(
