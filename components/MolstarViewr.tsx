@@ -8,13 +8,13 @@ import { Asset } from "molstar/lib/mol-util/assets";
 import { v4 as uuidv4 } from "uuid";
 import { Color } from "molstar/lib/mol-util/color";
 import { PluginStateObject } from "molstar/lib/mol-plugin-state/objects";
-const MolstarViewr = () => {
+const MolstarViewer = () => {
   const canvasRef: RefObject<null> = useRef(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const [isPluginReady, setIsPluginReady] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [bgColor, setBgColor] = useState("#000000");
-  const [structureColor, setStructureColor] = useState<string>("0xffffff");
+  const [structureColor, setStructureColor] = useState<string>("#ffffff");
   const [representationTypes, setRepresentationTypes] = useState<
     [string, string][]
   >([]);
@@ -325,4 +325,4 @@ const MolstarViewr = () => {
   );
 };
 
-export default MolstarViewr;
+export default MolstarViewer;
