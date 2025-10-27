@@ -114,7 +114,7 @@ const MolstarViewer = () => {
       return;
     }
     const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
+    if (!input.files || input.files.length === 0 || isStructureLoaded) return;
 
     const file: File = input.files[0];
 
