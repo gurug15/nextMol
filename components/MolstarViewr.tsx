@@ -36,6 +36,7 @@ const MolstarViewer = () => {
   useEffect(() => {
     // Initialize Mol* plugin
     const molInit = async () => {
+      console.log("Initializing Mol*Star...");
       try {
         const canvas = canvasRef.current as HTMLCanvasElement | null;
         const parent = parentRef.current as HTMLDivElement | null;

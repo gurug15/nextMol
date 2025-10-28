@@ -1,13 +1,13 @@
 "use client";
 import { ChartExample } from "@/components/ExampleComponent";
-import MolstarViewer from "@/components/MolstarViewr";
+// import MolstarViewer from "@/components/MolstarViewr";
 import React from "react";
 
-// import dynamic from "next/dynamic";
+import dynamic from "next/dynamic";
 
-// const MolstarViewer = dynamic(() => import("../../components/MolstarViewr"), {
-//   ssr: false,
-// });
+const MolstarViewer = dynamic(() => import("../components/MolstarViewr"), {
+  ssr: false,
+});
 export default function page() {
   return (
     <div className="">
