@@ -1,8 +1,5 @@
 "use client";
-import { ChartExample } from "@/components/ExampleComponent";
 // import MolstarViewer from "@/components/MolstarViewr";
-import React from "react";
-
 import dynamic from "next/dynamic";
 
 const MolstarViewer = dynamic(() => import("../components/MolstarViewr"), {
