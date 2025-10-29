@@ -9,7 +9,12 @@ import { v4 as uuidv4 } from "uuid";
 import { Color } from "molstar/lib/mol-util/color";
 import { PluginStateObject } from "molstar/lib/mol-plugin-state/objects";
 import { BuiltInTrajectoryFormat } from "molstar/lib/mol-plugin-state/formats/trajectory";
-import { BuiltInCoordinatesFormat } from "molstar/lib/mol-plugin-state/formats/coordinates";
+import {
+  BuiltInCoordinatesFormat,
+  XtcProvider,
+} from "molstar/lib/mol-plugin-state/formats/coordinates";
+import { PluginStateAnimation } from "molstar/lib/mol-plugin-state/animation/model";
+import { StateTransforms } from "molstar/lib/mol-plugin-state/transforms";
 
 // Custom hook to encapsulate Mol* logic
 export const useMolstar = (
@@ -29,6 +34,7 @@ export const useMolstar = (
     useState<string>("");
   const [isStructureLoaded, setIsStructureLoaded] = useState(false);
   const [isStereoEnabled, setIsStereoEnabled] = useState(false);
+  const [topologyModel, setTopologyModel] = useState<any>(null);
   // Effect for plugin initialization and disposal
   useEffect(() => {
     // Create and initialize the plugin
@@ -155,14 +161,22 @@ export const useMolstar = (
       const format: BuiltInTrajectoryFormat | undefined = getFormatByExtension(
         file.name
       );
-      const trajectory = await plugin.builders.structure.parseTrajectory(
+      const topology = await plugin.builders.structure.parseTrajectory(
         data.data.ref,
         format!
       );
-      console.log("plugin builder data", plugin.builders);
-      console.log("Parsed trajectory:", trajectory);
+      const topologyModel = await plugin.builders.structure.createModel(
+        topology
+      );
+      setTopologyModel(topologyModel);
+      // Explore transforms
+      console.log("Available transforms:", Object.keys(StateTransforms));
+
+      // Check Model transforms
+      console.log("Model transforms:", Object.keys(StateTransforms.Model));
+
       await plugin.builders.structure.hierarchy.applyPreset(
-        trajectory,
+        topology,
         "default"
       );
       setIsStructureLoaded(true);
@@ -183,13 +197,89 @@ export const useMolstar = (
     if (!input.files || input.files.length === 0 || !isStructureLoaded) return;
 
     const file: File = input.files[0];
-    const format: BuiltInCoordinatesFormat | undefined =
-      getMolstarCoordinatesFormat(file.name);
-    if (!format) {
-      console.error("Unsupported trajectory file format");
-      return;
-    }
-    console.log("Trajectory file selected:", file);
+    const assetFile: Asset.File = {
+      kind: "file",
+      id: uuidv4() as UUID,
+      name: file.name,
+      file: file,
+    };
+    try {
+      const trajectoryData = await plugin.builders.data.readFile({
+        file: assetFile,
+        label: file.name,
+        isBinary: true,
+      });
+
+      const format: BuiltInCoordinatesFormat | undefined =
+        getMolstarCoordinatesFormat(file.name);
+      if (format === undefined) {
+        console.error("Unsupported trajectory file format");
+        return;
+      }
+      console.log("all state data", plugin.state.data);
+      const result = await plugin.dataFormats
+        .get(format)
+        ?.parse(plugin, trajectoryData.data.ref);
+
+      // Exploration
+      console.log("=== EXPLORING RESULT ===");
+      console.log("Type of result:", typeof result);
+      console.log("Keys:", Object.keys(result));
+      console.log("ref property:", result.ref);
+      console.log("cell property:", result.cell);
+
+      // Try to access data
+      if (result.cell) {
+        console.log("Cell obj:", result.cell.obj);
+        console.log("Cell data:", result.cell.obj?.data);
+      }
+      // Create trajectory from model + coordinates
+      const cordinateRef = result.ref;
+
+      // Before calling apply, log what it expects
+      const transformer =
+        StateTransforms.Model.TrajectoryFromModelAndCoordinates;
+      console.log("Transformer:", transformer);
+      console.log("Definition:", transformer.definition);
+      const paramsDefinition =
+        StateTransforms.Model.TrajectoryFromModelAndCoordinates.definition
+          .params;
+
+      // Call it (it might need arguments - try with undefined first)
+      const actualParams = paramsDefinition!(undefined, plugin);
+
+      console.log("Actual params expected:", actualParams);
+      console.log("Param keys:", Object.keys(actualParams));
+      try {
+        console.log("Model parent:", topologyModel.cell?.transform.parent);
+        const newTrajectory = await plugin
+          .build()
+          .to(topologyModel)
+          .apply(StateTransforms.Model.TrajectoryFromModelAndCoordinates, {
+            modelRef: topologyModel.ref,
+            coordinatesRef: cordinateRef,
+          })
+          .commit();
+
+        console.log("Trajectory created:", newTrajectory);
+      } catch (error: any) {
+        console.error("Transform failed:", error);
+        console.error("Error stack:", error.stack);
+        console.error("modelRef:", topologyModel.ref);
+        console.error("coordinatesRef:", cordinateRef);
+      }
+      // console.log("New trajectory created:", newTrajectory);
+
+      // Now play the animation
+      const modelAnimation = plugin.managers.animation.animations.find(
+        (anim) => anim.name === "built-in.animate-model-index"
+      );
+      console.log("model Animation: ", modelAnimation);
+      if (modelAnimation) {
+        await plugin.managers.animation.play(modelAnimation, {});
+        await plugin.managers.animation.start();
+      }
+    } catch (error) {}
   };
 
   const handleChangeBackgroundColor = (
