@@ -175,10 +175,12 @@ export const useMolstar = (
       // Check Model transforms
       console.log("Model transforms:", Object.keys(StateTransforms.Model));
 
-      await plugin.builders.structure.hierarchy.applyPreset(
-        topology,
-        "default"
-      );
+      //to load structure representation as single frame
+      // await plugin.builders.structure.hierarchy.applyPreset(
+      //   topology,
+      //   "default"
+      // );
+
       setIsStructureLoaded(true);
       setRepresentationTypes(plugin.representation.structure.registry.types);
     } catch (error) {
@@ -255,30 +257,61 @@ export const useMolstar = (
         const newTrajectory = await plugin
           .build()
           .to(topologyModel)
-          .apply(StateTransforms.Model.TrajectoryFromModelAndCoordinates, {
-            modelRef: topologyModel.ref,
-            coordinatesRef: cordinateRef,
-          })
+          .apply(
+            StateTransforms.Model.TrajectoryFromModelAndCoordinates,
+            {
+              modelRef: topologyModel.ref,
+              coordinatesRef: cordinateRef,
+            },
+            {
+              dependsOn: [topologyModel.ref, cordinateRef],
+            }
+          )
           .commit();
 
+        // const model = await plugin.builders.structure.createModel(
+        //   newTrajectory
+        // );
+        // const structure = await plugin.builders.structure.createStructure(
+        //   model
+        // );
+        // await plugin.builders.structure.representation.applyPreset(
+        //   structure,
+        //   "illustrative"
+        // );
         console.log("Trajectory created:", newTrajectory);
+        console.log("trajectory ref:", newTrajectory.ref);
+        console.log(
+          "trajectory cell:",
+          newTrajectory.cell?.obj?.data.frameCount
+        );
+        // After creating trajectory
+        const allTrajectories = plugin.state.data.selectQ((q) =>
+          q.ofType(PluginStateObject.Molecule.Trajectory)
+        );
+        console.log("All trajectories in state:", allTrajectories.length);
+        console.log("New trajectory data:", allTrajectories);
+
+        await plugin.builders.structure.hierarchy.applyPreset(
+          newTrajectory,
+          "default"
+        );
       } catch (error: any) {
         console.error("Transform failed:", error);
-        console.error("Error stack:", error.stack);
-        console.error("modelRef:", topologyModel.ref);
-        console.error("coordinatesRef:", cordinateRef);
       }
       // console.log("New trajectory created:", newTrajectory);
 
       // Now play the animation
-      const modelAnimation = plugin.managers.animation.animations.find(
-        (anim) => anim.name === "built-in.animate-model-index"
-      );
-      console.log("model Animation: ", modelAnimation);
-      if (modelAnimation) {
-        await plugin.managers.animation.play(modelAnimation, {});
-        await plugin.managers.animation.start();
-      }
+      // const modelAnimation = plugin.managers.animation.animations.find(
+      //   (anim) => anim.name === "built-in.animate-model-index"
+      // );
+      // console.log("model Animation: ", modelAnimation);
+      // if (modelAnimation) {
+      //   await plugin.managers.animation.play(modelAnimation, {
+      //     mode: { name: "loop" },
+      //   });
+      //   await plugin.managers.animation.start();
+      // }
     } catch (error) {}
   };
 
