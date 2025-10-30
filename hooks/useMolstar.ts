@@ -299,19 +299,37 @@ export const useMolstar = (
       } catch (error: any) {
         console.error("Transform failed:", error);
       }
-      // console.log("New trajectory created:", newTrajectory);
+      const models = plugin.state.data.selectQ((q) =>
+        q.ofType(PluginStateObject.Molecule.Model)
+      );
 
-      // Now play the animation
-      // const modelAnimation = plugin.managers.animation.animations.find(
-      //   (anim) => anim.name === "built-in.animate-model-index"
-      // );
-      // console.log("model Animation: ", modelAnimation);
-      // if (modelAnimation) {
-      //   await plugin.managers.animation.play(modelAnimation, {
-      //     mode: { name: "loop" },
-      //   });
-      //   await plugin.managers.animation.start();
-      // }
+      console.log("Models in state:", models.length);
+      console.log(
+        "Model details:",
+        models.map((m) => ({
+          ref: m.transform.ref,
+          modelIndex: m.transform.params?.modelIndex,
+          parent: m.transform.parent,
+        }))
+      );
+
+      // After applyPreset
+      const modelAnim = plugin.managers.animation.animations.find(
+        (anim) => anim.name === "built-in.animate-model-index"
+      );
+
+      console.log("Animation params:", modelAnim?.params);
+
+      // Try to play
+      await plugin.managers.animation.play(modelAnim!, {
+        mode: { name: "loop" },
+      });
+
+      // Check if it's playing
+      console.log("Is animating?", plugin.managers.animation.isAnimating);
+      console.log("Current animation:", plugin.managers.animation.current);
+
+      await plugin.managers.animation.start();
     } catch (error) {}
   };
 
