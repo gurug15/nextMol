@@ -28,6 +28,7 @@ type MolstarControlsProps = {
     onSetRepresentation: (event: React.ChangeEvent<HTMLSelectElement>) => void;
     onToggleStereoView: () => void;
     onRecenterView: () => void;
+    toggleTragractoryAnimation: () => void;
   };
 };
 
@@ -138,7 +139,13 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
             />
           </div>
         </div>
-
+        <button
+          onClick={handlers.toggleTragractoryAnimation}
+          className={`w-full inline-flex items-center bg-blue-500 justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
+          `}
+        >
+          Toggle Trajectory Animation
+        </button>
         {/* --- Stereo Toggle (Themed) --- */}
         <button
           onClick={handlers.onToggleStereoView}

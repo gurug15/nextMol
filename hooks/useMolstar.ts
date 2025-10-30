@@ -313,26 +313,28 @@ export const useMolstar = (
         }))
       );
 
-      // After applyPreset
-      const modelAnim = plugin.managers.animation.animations.find(
-        (anim) => anim.name === "built-in.animate-model-index"
-      );
-
-      console.log("Animation params:", modelAnim?.params);
-
-      // Try to play
-      await plugin.managers.animation.play(modelAnim!, {
-        mode: { name: "loop" },
-      });
-
-      // Check if it's playing
-      console.log("Is animating?", plugin.managers.animation.isAnimating);
-      console.log("Current animation:", plugin.managers.animation.current);
+      const curentAnimation = plugin.managers.animation.current;
+      console.log("Current animation:", curentAnimation);
+      if (curentAnimation) {
+        plugin.managers.animation.updateParams({
+          ...curentAnimation.params,
+        });
+      }
 
       await plugin.managers.animation.start();
     } catch (error) {}
   };
-
+  const toggleTragractoryAnimation = async () => {
+    if (!plugin) return;
+    const curentAnimation = plugin.managers.animation.current;
+    if (curentAnimation) {
+      if (plugin.managers.animation.isAnimating) {
+        await plugin.managers.animation.stop();
+      } else {
+        await plugin.managers.animation.start();
+      }
+    }
+  };
   const handleChangeBackgroundColor = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -370,7 +372,7 @@ export const useMolstar = (
         animate: {
           name: "spin",
           params: {
-            speed: newSpinState ? 0.04 : 0, // Use new state
+            speed: newSpinState ? 0.4 : 0, // Use new state
           },
         },
       },
@@ -503,6 +505,7 @@ export const useMolstar = (
         handleSetRepresentation(e.target.value),
       onToggleStereoView: handleToggleStereoView,
       onRecenterView: handleRecenterView,
+      toggleTragractoryAnimation: toggleTragractoryAnimation,
     },
   };
 };
