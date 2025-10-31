@@ -39,7 +39,7 @@ export const useMolstar = (
   useEffect(() => {
     // Create and initialize the plugin
     const initPlugin = async () => {
-      console.log("Initializing Mol*Star...");
+      // console.log("Initializing Mol*Star...");
       try {
         const canvas = canvasRef.current;
         const parent = parentRef.current;
@@ -53,7 +53,7 @@ export const useMolstar = (
 
         if (success) {
           setIsPluginReady(true);
-          console.log("Mol*Star initialized successfully!");
+          // console.log("Mol*Star initialized successfully!");
 
           // Set initial background color (original logic had this in spec,
           // but better to set explicitly after init)
@@ -151,7 +151,7 @@ export const useMolstar = (
       file: file,
     };
     await plugin.init();
-    console.log("plugin in file select:", plugin);
+    // console.log("plugin in file select:", plugin);
     try {
       const data = await plugin.builders.data.readFile({
         file: assetFile,
@@ -170,10 +170,10 @@ export const useMolstar = (
       );
       setTopologyModel(topologyModel);
       // Explore transforms
-      console.log("Available transforms:", Object.keys(StateTransforms));
+      // console.log("Available transforms:", Object.keys(StateTransforms));
 
       // Check Model transforms
-      console.log("Model transforms:", Object.keys(StateTransforms.Model));
+      // console.log("Model transforms:", Object.keys(StateTransforms.Model));
 
       //to load structure representation as single frame
       // await plugin.builders.structure.hierarchy.applyPreset(
@@ -218,117 +218,66 @@ export const useMolstar = (
         console.error("Unsupported trajectory file format");
         return;
       }
-      console.log("all state data", plugin.state.data);
+      // console.log("all state data", plugin.state.data);
       const result = await plugin.dataFormats
         .get(format)
         ?.parse(plugin, trajectoryData.data.ref);
 
-      // Exploration
-      console.log("=== EXPLORING RESULT ===");
-      console.log("Type of result:", typeof result);
-      console.log("Keys:", Object.keys(result));
-      console.log("ref property:", result.ref);
-      console.log("cell property:", result.cell);
-
-      // Try to access data
-      if (result.cell) {
-        console.log("Cell obj:", result.cell.obj);
-        console.log("Cell data:", result.cell.obj?.data);
-      }
-      // Create trajectory from model + coordinates
       const cordinateRef = result.ref;
 
-      // Before calling apply, log what it expects
-      const transformer =
-        StateTransforms.Model.TrajectoryFromModelAndCoordinates;
-      console.log("Transformer:", transformer);
-      console.log("Definition:", transformer.definition);
-      const paramsDefinition =
-        StateTransforms.Model.TrajectoryFromModelAndCoordinates.definition
-          .params;
+      const newTrajectory = await plugin
+        .build()
+        .to(topologyModel)
+        .apply(
+          StateTransforms.Model.TrajectoryFromModelAndCoordinates,
+          {
+            modelRef: topologyModel.ref,
+            coordinatesRef: cordinateRef,
+          },
+          {
+            dependsOn: [topologyModel.ref, cordinateRef],
+          }
+        )
+        .commit();
 
-      // Call it (it might need arguments - try with undefined first)
-      const actualParams = paramsDefinition!(undefined, plugin);
+      // console.log("Frame Count:", newTrajectory.cell?.obj?.data.frameCount);
+      // const models = plugin.state.data.selectQ((q) =>
+      //   q.ofType(PluginStateObject.Molecule.Model)
+      // );
+      // console.log("How many model nodes?", models.length);
 
-      console.log("Actual params expected:", actualParams);
-      console.log("Param keys:", Object.keys(actualParams));
-      try {
-        console.log("Model parent:", topologyModel.cell?.transform.parent);
-        const newTrajectory = await plugin
-          .build()
-          .to(topologyModel)
-          .apply(
-            StateTransforms.Model.TrajectoryFromModelAndCoordinates,
-            {
-              modelRef: topologyModel.ref,
-              coordinatesRef: cordinateRef,
-            },
-            {
-              dependsOn: [topologyModel.ref, cordinateRef],
-            }
-          )
-          .commit();
+      // // Check representations
+      // const representations = plugin.state.data.selectQ((q) =>
+      //   q.ofType(PluginStateObject.Molecule.Structure.Representation3D)
+      // );
+      // console.log("How many representations?", representations.length);
+      // const allTrajectories = plugin.state.data.selectQ((q) =>
+      //   q.ofType(PluginStateObject.Molecule.Trajectory)
+      // );
+      // console.log("All trajectories in state:", allTrajectories.length);
+      // console.log("New trajectory data:", allTrajectories);
 
-        // const model = await plugin.builders.structure.createModel(
-        //   newTrajectory
-        // );
-        // const structure = await plugin.builders.structure.createStructure(
-        //   model
-        // );
-        // await plugin.builders.structure.representation.applyPreset(
-        //   structure,
-        //   "illustrative"
-        // );
-        console.log("Trajectory created:", newTrajectory);
-        console.log("trajectory ref:", newTrajectory.ref);
-        console.log(
-          "trajectory cell:",
-          newTrajectory.cell?.obj?.data.frameCount
-        );
-        // After creating trajectory
-        const allTrajectories = plugin.state.data.selectQ((q) =>
-          q.ofType(PluginStateObject.Molecule.Trajectory)
-        );
-        console.log("All trajectories in state:", allTrajectories.length);
-        console.log("New trajectory data:", allTrajectories);
-
-        await plugin.builders.structure.hierarchy.applyPreset(
-          newTrajectory,
-          "default"
-        );
-      } catch (error: any) {
-        console.error("Transform failed:", error);
-      }
-      const models = plugin.state.data.selectQ((q) =>
-        q.ofType(PluginStateObject.Molecule.Model)
+      await plugin.builders.structure.hierarchy.applyPreset(
+        newTrajectory,
+        "default"
       );
-
-      console.log("Models in state:", models.length);
-      console.log(
-        "Model details:",
-        models.map((m) => ({
-          ref: m.transform.ref,
-          modelIndex: m.transform.params?.modelIndex,
-          parent: m.transform.parent,
-        }))
-      );
-
-      const curentAnimation = plugin.managers.animation.current;
-      console.log("Current animation:", curentAnimation);
-      if (curentAnimation) {
-        plugin.managers.animation.updateParams({
-          ...curentAnimation.params,
-        });
-      }
-
+      console.log("plugin canvas props:", plugin.canvas3d?.props);
+      console.log("plugin bevaiors:", plugin.behaviors.state);
       await plugin.managers.animation.start();
-    } catch (error) {}
+    } catch (error: any) {
+      console.error("Transform failed:", error);
+    }
+
+    // console.log("Current animation tick:", plugin.managers.animation.tick(60));
   };
+
   const toggleTragractoryAnimation = async () => {
     if (!plugin) return;
     const curentAnimation = plugin.managers.animation.current;
+    console.log("Current animation:", plugin.managers.animation);
     if (curentAnimation) {
       if (plugin.managers.animation.isAnimating) {
+        console.log("animation:", plugin.managers.animation.isAnimating);
         await plugin.managers.animation.stop();
       } else {
         await plugin.managers.animation.start();

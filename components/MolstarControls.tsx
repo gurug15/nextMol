@@ -48,7 +48,7 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
     trajectoryInputRef.current?.click();
   };
   return (
-    <div className="pt-10 w-1/4 h-screen flex flex-col justify-start p-4 bg-black border-r border-gray-200">
+    <div className="pt-10 w-1/5 h-screen flex flex-col justify-start p-4 ">
       <div className="flex flex-col space-y-5">
         {/* --- Hidden Inputs (Unchanged) --- */}
         <input
