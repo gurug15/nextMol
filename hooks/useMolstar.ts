@@ -391,7 +391,7 @@ export const useMolstar = (
     );
 
     // Re-apply representation to ensure color updates if needed (matches original logic)
-    handleSetRepresentation(selectedRepresentation, newColor);
+    // handleSetRepresentation(selectedRepresentation, newColor);
   };
 
   const handleSetRepresentation = async (type: string, color?: Color) => {
