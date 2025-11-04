@@ -12,6 +12,8 @@ type MolstarControlsProps = {
     structureColor: string;
     representationTypes: [string, string][];
     isStereoEnabled: boolean;
+    frameCount: number;
+    atomcount: number;
   };
   handlers: {
     onTopologyFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -29,6 +31,8 @@ type MolstarControlsProps = {
     onToggleStereoView: () => void;
     onRecenterView: () => void;
     toggleTragractoryAnimation: () => void;
+    handleViewModeChange: (mode: string) => void;
+    handleFullScreenToggle: () => void;
   };
 };
 
@@ -48,11 +52,12 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
     trajectoryInputRef.current?.click();
   };
   return (
-    <div className="pt-10 w-1/5 h-screen flex flex-col justify-start p-4 ">
+    <div className=" w-1/5  flex flex-col justify-start p-4 ">
       <div className="flex flex-col space-y-5">
         {/* --- Hidden Inputs (Unchanged) --- */}
         <input
           type="file"
+          accept=".pdb, .gro, .cif, .mmcif"
           placeholder="Select Topology File"
           style={{ display: "none" }}
           ref={topologyInputRef}
@@ -65,6 +70,7 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
         />
         <input
           type="file"
+          accept=".xtc, .dcd"
           placeholder="Select Trajectory File"
           style={{ display: "none" }}
           ref={trajectoryInputRef}
@@ -104,7 +110,31 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
             {!trajectoryFilename ? "Load Trajectory File" : trajectoryFilename}
           </span>
         </button>
+        <div className="w-full flex px-0.5 space-x-4">
+          <div className="w-full flex flex-col items-start space-y-2">
+            <label
+              htmlFor="bgColor"
+              className="text-sm text-gray-300 font-semibold"
+            >
+              Frame Count:
+            </label>
+            <div className="w-full h-10 p-1 border border-gray-300 rounded-md cursor-pointer text-xl text-center pt-1">
+              {state.frameCount}
+            </div>
+          </div>
 
+          <div className="w-full flex flex-col items-start space-y-2">
+            <label
+              htmlFor="structureColor"
+              className="text-sm text-gray-300 font-semibold"
+            >
+              Atom Count:
+            </label>
+            <div className="w-full h-10 p-1 border border-gray-300 rounded-md cursor-pointer text-center text-xl pt-1">
+              {state.atomcount}
+            </div>
+          </div>
+        </div>
         {/* --- Color Pickers (Aligned & Styled) --- */}
         <div className="w-full flex px-0.5 space-x-4">
           <div className="w-full flex flex-col items-start space-y-2">
@@ -170,7 +200,19 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
         >
           {state.isSpinning ? "Stop Spin" : "Start Spin"}
         </button>
-
+        {/* {state.isSpinning && (
+          <input
+            type="range"
+            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2"
+            min={0}
+            max={1}
+            step={0.02}
+            value={state.rotationSpeed}
+            onChange={(event) => {
+              handlers.setRotationSpeed(parseFloat(event.target.value));
+            }}
+          />
+        )} */}
         {/* --- Representation Dropdown (Styled) --- */}
         <div className="w-full flex flex-col items-start space-y-2">
           <label
@@ -194,6 +236,28 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
             ))}
           </select>
         </div>
+        <div className="w-full flex flex-col items-start space-y-2">
+          <label
+            htmlFor="representation"
+            className="text-sm text-gray-300 font-semibold"
+          >
+            ViewMode
+          </label>
+          <select
+            id="representation"
+            onChange={(e) => handlers.handleViewModeChange(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+          >
+            <option className="bg-black text-gray-50" disabled value="">
+              Select view
+            </option>
+            {["perspective", "orthographic"].map((type) => (
+              <option key={type} className="bg-black text-gray-50" value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* --- Recenter Button (Themed) --- */}
         <button
@@ -202,6 +266,13 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
         bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
         >
           Recenter View
+        </button>
+        <button
+          onClick={handlers.handleFullScreenToggle}
+          className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
+        bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
+        >
+          Full Screen
         </button>
       </div>
     </div>

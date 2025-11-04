@@ -13,12 +13,12 @@ const MolstarViewer = () => {
   const { state, handlers } = useMolstar(canvasRef, parentRef);
 
   return (
-    <div className="w-full flex items-center justify-between">
+    <div className="w-full h-[859px] flex justify-between">
       {/* Pass state and handlers to the controls component */}
       <MolstarControls state={state} handlers={handlers} />
 
       {/* Mol* Viewer Canvas */}
-      <div ref={parentRef} className="w-4/5 h-screen relative">
+      <div ref={parentRef} className="w-4/5 h-full relative">
         <canvas
           ref={canvasRef}
           className="absolute top-0 left-0 w-full h-full"

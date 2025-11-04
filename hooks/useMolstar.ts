@@ -30,6 +30,9 @@ export const useMolstar = (
   const [representationTypes, setRepresentationTypes] = useState<
     [string, string][]
   >([]);
+  const [frameCount, setFrameCount] = useState<number>(0);
+  const [atomcount, setAtomcount] = useState<number>(0);
+  // const [rotationSpeed, setRotationSpeed] = useState(0.25);
   const [selectedRepresentation, setSelectedRepresentation] =
     useState<string>("");
   const [isStructureLoaded, setIsStructureLoaded] = useState(false);
@@ -60,6 +63,9 @@ export const useMolstar = (
           newPlugin.canvas3d?.setProps({
             renderer: {
               backgroundColor: Color(parseInt(bgColor.replace("#", "0x"))),
+            },
+            interaction: {
+              maxFps: 120,
             },
           });
         } else {
@@ -182,7 +188,22 @@ export const useMolstar = (
       // );
 
       setIsStructureLoaded(true);
-      setRepresentationTypes(plugin.representation.structure.registry.types);
+      const excludedTypes = [
+        "gaussian-volume",
+        "gaussian-surface",
+        "cross-link-restraint",
+        "ellipsoid",
+        "carbohydrate",
+        "interactions",
+      ];
+      // 2. Filter by checking if the name is NOT in the list
+      const filteredTypes =
+        plugin.representation.structure.registry.types.filter(
+          (name) => !excludedTypes.includes(name[0])
+        );
+      // console.log("Filtered representation types:", filteredTypes);
+      setRepresentationTypes(filteredTypes);
+      setSelectedRepresentation("cartoon");
     } catch (error) {
       console.error(" Error loading file:", error);
     }
@@ -240,7 +261,6 @@ export const useMolstar = (
         )
         .commit();
 
-      // console.log("Frame Count:", newTrajectory.cell?.obj?.data.frameCount);
       // const models = plugin.state.data.selectQ((q) =>
       //   q.ofType(PluginStateObject.Molecule.Model)
       // );
@@ -261,8 +281,25 @@ export const useMolstar = (
         newTrajectory,
         "default"
       );
-      console.log("plugin canvas props:", plugin.canvas3d?.props);
-      console.log("plugin bevaiors:", plugin.behaviors.state);
+      // CHECK #1: Right after applyPreset
+      console.log("=== CHECK #1: After applyPreset ===");
+      const structures1 = plugin.state.data.selectQ((q) =>
+        q.ofType(PluginStateObject.Molecule.Structure)
+      );
+      console.log("Structures found:", structures1.length);
+      console.log("Structure cells:", structures1);
+
+      // CHECK #2: Is obj defined?
+      if (structures1.length > 0) {
+        console.log("First structure obj:", structures1[0].obj);
+        console.log("Has data?", structures1[0].obj?.data);
+
+        if (structures1[0].obj?.data) {
+          console.log("Element count:", structures1[0].obj.data.elementCount);
+          setAtomcount(structures1[0].obj.data.elementCount);
+        }
+      }
+      setFrameCount(newTrajectory.cell?.obj?.data.frameCount || 0);
       await plugin.managers.animation.start();
     } catch (error: any) {
       console.error("Transform failed:", error);
@@ -311,7 +348,7 @@ export const useMolstar = (
       console.warn("Canvas not ready");
       return;
     }
-
+    // setRotationSpeed(rotateSpeed);
     // Use the new state value for the logic
     const newSpinState = !isSpinning;
     setIsSpinning(newSpinState);
@@ -321,7 +358,7 @@ export const useMolstar = (
         animate: {
           name: "spin",
           params: {
-            speed: newSpinState ? 0.4 : 0, // Use new state
+            speed: newSpinState ? 0.27 : 0, // Use new state
           },
         },
       },
@@ -399,6 +436,39 @@ export const useMolstar = (
     }
   };
 
+  const handleFullScreenToggle = () => {
+    if (!parentRef.current) return;
+
+    if (!document.fullscreenElement) {
+      parentRef.current.requestFullscreen().catch((err) => {
+        console.error(
+          `Error attempting to enable full-screen mode: ${err.message} (${err.name})`
+        );
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  const handleViewModeChange = (mode: string) => {
+    if (!plugin?.canvas3d) return;
+    // Logic to change view mode based on the selected option
+    switch (mode) {
+      case "orthographic":
+        plugin.canvas3d.setProps({
+          camera: { mode: "orthographic" },
+        });
+        break;
+      case "perspective":
+        plugin.canvas3d.setProps({
+          camera: { mode: "perspective" },
+        });
+        break;
+      default:
+        console.warn("Unknown view mode:", mode);
+    }
+  };
+
   const handleToggleStereoView = () => {
     if (!plugin?.canvas3d) {
       console.warn("Canvas not ready");
@@ -410,6 +480,7 @@ export const useMolstar = (
 
     plugin.canvas3d.setProps({
       camera: {
+        mode: "perspective",
         stereo: {
           name: newStereoState ? "on" : "off",
           params: {
@@ -443,6 +514,8 @@ export const useMolstar = (
       selectedRepresentation,
       isStructureLoaded,
       isStereoEnabled,
+      frameCount,
+      atomcount,
     },
     handlers: {
       onTopologyFileSelect: handleTopologyFileSelect,
@@ -455,6 +528,8 @@ export const useMolstar = (
       onToggleStereoView: handleToggleStereoView,
       onRecenterView: handleRecenterView,
       toggleTragractoryAnimation: toggleTragractoryAnimation,
+      handleViewModeChange: handleViewModeChange,
+      handleFullScreenToggle: handleFullScreenToggle,
     },
   };
 };
