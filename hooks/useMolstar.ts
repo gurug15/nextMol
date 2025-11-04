@@ -382,7 +382,7 @@ export const useMolstar = (
       return;
     }
 
-    plugin?.managers.structure.component.updateRepresentationsTheme(
+    plugin?.managers.structure.component!.updateRepresentationsTheme(
       component!,
       {
         color: "uniform",
