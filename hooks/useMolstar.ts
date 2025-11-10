@@ -38,6 +38,7 @@ export const useMolstar = (
   const [isStructureLoaded, setIsStructureLoaded] = useState(false);
   const [isStereoEnabled, setIsStereoEnabled] = useState(false);
   const [topologyModel, setTopologyModel] = useState<any>(null);
+  const [cordinateRef, setCordinateRef] = useState<any>(null);
   // Effect for plugin initialization and disposal
   useEffect(() => {
     // Create and initialize the plugin
@@ -232,7 +233,6 @@ export const useMolstar = (
         label: file.name,
         isBinary: true,
       });
-
       const format: BuiltInCoordinatesFormat | undefined =
         getMolstarCoordinatesFormat(file.name);
       if (format === undefined) {
@@ -246,20 +246,7 @@ export const useMolstar = (
 
       const cordinateRef = result.ref;
 
-      const newTrajectory = await plugin
-        .build()
-        .to(topologyModel)
-        .apply(
-          StateTransforms.Model.TrajectoryFromModelAndCoordinates,
-          {
-            modelRef: topologyModel.ref,
-            coordinatesRef: cordinateRef,
-          },
-          {
-            dependsOn: [topologyModel.ref, cordinateRef],
-          }
-        )
-        .commit();
+      setCordinateRef(cordinateRef);
 
       // const models = plugin.state.data.selectQ((q) =>
       //   q.ofType(PluginStateObject.Molecule.Model)
@@ -276,7 +263,28 @@ export const useMolstar = (
       // );
       // console.log("All trajectories in state:", allTrajectories.length);
       // console.log("New trajectory data:", allTrajectories);
+    } catch (error: any) {
+      console.error("Transform failed:", error);
+    } // console.log("Current animation tick:", plugin.managers.animation.tick(60));
+  };
 
+  const loadStructureRepresentation = async () => {
+    if (!plugin) return;
+    const newTrajectory = await plugin
+      .build()
+      .to(topologyModel)
+      .apply(
+        StateTransforms.Model.TrajectoryFromModelAndCoordinates,
+        {
+          modelRef: topologyModel.ref,
+          coordinatesRef: cordinateRef,
+        },
+        {
+          dependsOn: [topologyModel.ref, cordinateRef],
+        }
+      )
+      .commit();
+    try {
       await plugin.builders.structure.hierarchy.applyPreset(
         newTrajectory,
         "default"
@@ -290,6 +298,9 @@ export const useMolstar = (
         await plugin.build().delete(repr.transform.ref).commit();
       }
       handleSetRepresentation(selectedRepresentation);
+
+      setIsStructureLoaded(true);
+
       console.log("=== CHECK #1: After applyPreset ===");
       const structures1 = plugin.state.data.selectQ((q) =>
         q.ofType(PluginStateObject.Molecule.Structure)
@@ -309,12 +320,9 @@ export const useMolstar = (
       setFrameCount(newTrajectory.cell?.obj?.data.frameCount || 0);
       await plugin.managers.animation.start();
     } catch (error: any) {
-      console.error("Transform failed:", error);
+      console.error("Failed to load structure representation:", error);
     }
-
-    // console.log("Current animation tick:", plugin.managers.animation.tick(60));
   };
-
   const toggleTragractoryAnimation = async () => {
     if (!plugin) return;
     const curentAnimation = plugin.managers.animation.current;
@@ -547,6 +555,7 @@ export const useMolstar = (
       toggleTragractoryAnimation: toggleTragractoryAnimation,
       handleViewModeChange: handleViewModeChange,
       handleFullScreenToggle: handleFullScreenToggle,
+      loadStructureRepresentation: loadStructureRepresentation,
     },
   };
 };

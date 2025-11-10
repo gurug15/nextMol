@@ -33,6 +33,7 @@ type MolstarControlsProps = {
     toggleTragractoryAnimation: () => void;
     handleViewModeChange: (mode: string) => void;
     handleFullScreenToggle: () => void;
+    loadStructureRepresentation: () => void;
   };
 };
 
@@ -52,7 +53,7 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
     trajectoryInputRef.current?.click();
   };
   return (
-    <div className=" w-1/5  flex flex-col justify-start p-4 ">
+    <div className=" w-1/7  flex flex-col justify-start p-4 ">
       <div className="flex flex-col space-y-5">
         {/* --- Hidden Inputs (Unchanged) --- */}
         <input
@@ -110,6 +111,19 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
             {!trajectoryFilename ? "Load Trajectory File" : trajectoryFilename}
           </span>
         </button>
+        <button
+          onClick={handlers.loadStructureRepresentation}
+          className="px-3 py-1 w-20 text-lg rounded-md cursor-pointer 
+              text-gray-900 dark:text-gray-100 
+              bg-gray-200 dark:bg-gray-800 
+                border border-gray-200 dark:border-gray-700 
+                shadow-[6px_6px_12px_#c5c5c5,-6px_-6px_12px_#fff] 
+                dark:shadow-[6px_6px_12px_#111,-6px_-6px_12px_#2a2a2a] 
+                active:shadow-inner transition-all duration-300"
+        >
+          Load
+        </button>
+
         <div className="w-full flex px-0.5 space-x-4">
           <div className="w-full flex flex-col items-start space-y-2">
             <label
@@ -142,7 +156,7 @@ const MolstarControls = ({ state, handlers }: MolstarControlsProps) => {
               htmlFor="bgColor"
               className="text-sm text-gray-300 font-semibold"
             >
-              Background Color
+              BG Color
             </label>
             <input
               type="color"

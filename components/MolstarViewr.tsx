@@ -18,7 +18,7 @@ const MolstarViewer = () => {
       <MolstarControls state={state} handlers={handlers} />
 
       {/* Mol* Viewer Canvas */}
-      <div ref={parentRef} className="w-4/5 h-full relative">
+      <div ref={parentRef} className="w-6/7 h-full relative">
         <canvas
           ref={canvasRef}
           className="absolute top-0 left-0 w-full h-full"
