@@ -8,13 +8,13 @@ import { Asset } from "molstar/lib/mol-util/assets";
 import { v4 as uuidv4 } from "uuid";
 import { Color } from "molstar/lib/mol-util/color";
 import { PluginStateObject } from "molstar/lib/mol-plugin-state/objects";
-import { BuiltInTrajectoryFormat } from "molstar/lib/mol-plugin-state/formats/trajectory";
 import {
   BuiltInCoordinatesFormat,
   XtcProvider,
 } from "molstar/lib/mol-plugin-state/formats/coordinates";
 import { PluginStateAnimation } from "molstar/lib/mol-plugin-state/animation/model";
 import { StateTransforms } from "molstar/lib/mol-plugin-state/transforms";
+import { BuiltInTrajectoryFormat } from "molstar/lib/mol-plugin-state/formats/trajectory";
 
 // Custom hook to encapsulate Mol* logic
 export const useMolstar = (
@@ -281,7 +281,15 @@ export const useMolstar = (
         newTrajectory,
         "default"
       );
-      // CHECK #1: Right after applyPreset
+      const representations = plugin.state.data.selectQ((q) =>
+        q.ofType(PluginStateObject.Molecule.Structure.Representation3D)
+      );
+
+      // Clear existing representations
+      for (const repr of representations) {
+        await plugin.build().delete(repr.transform.ref).commit();
+      }
+      handleSetRepresentation(selectedRepresentation);
       console.log("=== CHECK #1: After applyPreset ===");
       const structures1 = plugin.state.data.selectQ((q) =>
         q.ofType(PluginStateObject.Molecule.Structure)
@@ -289,7 +297,6 @@ export const useMolstar = (
       console.log("Structures found:", structures1.length);
       console.log("Structure cells:", structures1);
 
-      // CHECK #2: Is obj defined?
       if (structures1.length > 0) {
         console.log("First structure obj:", structures1[0].obj);
         console.log("Has data?", structures1[0].obj?.data);
@@ -365,33 +372,43 @@ export const useMolstar = (
     });
   };
 
-  const handleChangeStructureColor = (
+  const handleChangeStructureColor = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const newColorHex = event.target.value;
-    setStructureColor(newColorHex); // Update React state
+    setStructureColor(newColorHex);
 
     const intColor = parseInt(newColorHex.replace("#", "0x"));
     const newColor = Color(intColor);
 
-    const component =
-      plugin?.managers.structure.hierarchy.current.structures[0]?.components;
+    if (!plugin) return;
 
-    if (!component) {
-      console.warn("No structure component found to update color.");
-      return;
-    }
-
-    plugin?.managers.structure.component!.updateRepresentationsTheme(
-      component!,
-      {
-        color: "uniform",
-        colorParams: { value: newColor },
-      }
+    const state = plugin.state.data;
+    const structures = state.selectQ((q) =>
+      q.ofType(PluginStateObject.Molecule.Structure)
     );
 
-    // Re-apply representation to ensure color updates if needed (matches original logic)
-    // handleSetRepresentation(selectedRepresentation, newColor);
+    if (structures.length === 0) return;
+
+    // Update ONLY the color, keep same representation type
+    await state
+      .build()
+      .to(structures[0])
+      .applyOrUpdateTagged(
+        "main-repr",
+        StateTransforms.Representation.StructureRepresentation3D,
+        {
+          type: {
+            name: selectedRepresentation || "cartoon", // Keep current type
+            params: {},
+          },
+          colorTheme: {
+            name: "uniform",
+            params: { value: newColor },
+          },
+        }
+      )
+      .commit();
   };
 
   const handleSetRepresentation = async (type: string, color?: Color) => {
@@ -413,29 +430,29 @@ export const useMolstar = (
       if (structures.length === 0) return;
       const structure = structures[0];
 
-      const representations = state.selectQ((q) =>
-        q.ofType(PluginStateObject.Molecule.Structure.Representation3D)
-      );
-
-      // Clear existing representations
-      for (const repr of representations) {
-        await plugin.build().delete(repr.transform.ref).commit();
-      }
-
-      // Add the new one
-      await plugin.builders.structure.representation.addRepresentation(
-        structure,
-        {
-          type: type as any,
-          color: "uniform",
-          colorParams: { value: colorToUse },
-        }
-      );
+      // Use applyOrUpdateTagged to update in-place instead of delete+create
+      await state
+        .build()
+        .to(structure)
+        .applyOrUpdateTagged(
+          "main-repr", // Stable tag - always use same tag for updates
+          StateTransforms.Representation.StructureRepresentation3D,
+          {
+            type: {
+              name: type,
+              params: {},
+            },
+            colorTheme: {
+              name: "uniform",
+              params: { value: colorToUse },
+            },
+          }
+        )
+        .commit();
     } catch (error) {
       console.error(`Failed to set representation:`, error);
     }
   };
-
   const handleFullScreenToggle = () => {
     if (!parentRef.current) return;
 
