@@ -39,6 +39,7 @@ export const useMolstar = (
   const [isStereoEnabled, setIsStereoEnabled] = useState(false);
   const [topologyModel, setTopologyModel] = useState<any>(null);
   const [cordinateRef, setCordinateRef] = useState<any>(null);
+
   // Effect for plugin initialization and disposal
   useEffect(() => {
     // Create and initialize the plugin
@@ -47,6 +48,8 @@ export const useMolstar = (
       try {
         const canvas = canvasRef.current;
         const parent = parentRef.current;
+        console.log("Canvas ref:", canvas);
+        console.log("Parent ref:", parent);
         if (!canvas || !parent) return;
 
         // Use default spec for initialization
@@ -140,17 +143,12 @@ export const useMolstar = (
     }
   }
 
-  const handleTopologyFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (!plugin || !isPluginReady) {
+  const handleTopologyFileSelect = async (file: File | null) => {
+    if (!plugin) {
       console.warn("Plugin not ready yet!");
       return;
     }
-    const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0 || isStructureLoaded) return;
-
-    const file: File = input.files[0];
+    if (!file || isStructureLoaded) return;
     const assetFile: Asset.File = {
       kind: "file",
       id: uuidv4() as UUID,
@@ -176,17 +174,6 @@ export const useMolstar = (
         topology
       );
       setTopologyModel(topologyModel);
-      // Explore transforms
-      // console.log("Available transforms:", Object.keys(StateTransforms));
-
-      // Check Model transforms
-      // console.log("Model transforms:", Object.keys(StateTransforms.Model));
-
-      //to load structure representation as single frame
-      // await plugin.builders.structure.hierarchy.applyPreset(
-      //   topology,
-      //   "default"
-      // );
 
       setIsStructureLoaded(true);
       const excludedTypes = [
@@ -210,17 +197,13 @@ export const useMolstar = (
     }
   };
 
-  const handleTrajectoryFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (!plugin || !isPluginReady) {
+  const handleTrajectoryFileSelect = async (file: File | null) => {
+    if (!plugin) {
       console.warn("Plugin not ready yet!");
       return;
     }
-    const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0 || !isStructureLoaded) return;
+    if (!file || !isStructureLoaded) return;
 
-    const file: File = input.files[0];
     const assetFile: Asset.File = {
       kind: "file",
       id: uuidv4() as UUID,
@@ -247,22 +230,6 @@ export const useMolstar = (
       const cordinateRef = result.ref;
 
       setCordinateRef(cordinateRef);
-
-      // const models = plugin.state.data.selectQ((q) =>
-      //   q.ofType(PluginStateObject.Molecule.Model)
-      // );
-      // console.log("How many model nodes?", models.length);
-
-      // // Check representations
-      // const representations = plugin.state.data.selectQ((q) =>
-      //   q.ofType(PluginStateObject.Molecule.Structure.Representation3D)
-      // );
-      // console.log("How many representations?", representations.length);
-      // const allTrajectories = plugin.state.data.selectQ((q) =>
-      //   q.ofType(PluginStateObject.Molecule.Trajectory)
-      // );
-      // console.log("All trajectories in state:", allTrajectories.length);
-      // console.log("New trajectory data:", allTrajectories);
     } catch (error: any) {
       console.error("Transform failed:", error);
     } // console.log("Current animation tick:", plugin.managers.animation.tick(60));
@@ -270,6 +237,7 @@ export const useMolstar = (
 
   const loadStructureRepresentation = async () => {
     if (!plugin) return;
+
     const newTrajectory = await plugin
       .build()
       .to(topologyModel)
@@ -323,6 +291,7 @@ export const useMolstar = (
       console.error("Failed to load structure representation:", error);
     }
   };
+
   const toggleTragractoryAnimation = async () => {
     if (!plugin) return;
     const curentAnimation = plugin.managers.animation.current;
@@ -336,6 +305,7 @@ export const useMolstar = (
       }
     }
   };
+
   const handleChangeBackgroundColor = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -461,6 +431,7 @@ export const useMolstar = (
       console.error(`Failed to set representation:`, error);
     }
   };
+
   const handleFullScreenToggle = () => {
     if (!parentRef.current) return;
 
