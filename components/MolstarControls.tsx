@@ -1,14 +1,41 @@
-// MolstarControls.tsx
 "use client";
 
 import React, { Dispatch, SetStateAction, useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Menu,
+  Upload,
+  Play,
+  Square,
+  Eye,
+  EyeOff,
+  Maximize2,
+  RotateCw,
+  Cross,
+} from "lucide-react";
 
 type FileInputProps = {
   topology: null | string;
   trajectory: null | string;
 };
 
-// Define props for the controls component
 type MolstarControlsProps = {
   state: {
     isSpinning: boolean;
@@ -43,6 +70,8 @@ type MolstarControlsProps = {
   viewport2Loaded: boolean;
   setViewport1Loaded: Dispatch<SetStateAction<boolean>>;
   setViewport2Loaded: Dispatch<SetStateAction<boolean>>;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 const MolstarControls = ({
@@ -54,6 +83,8 @@ const MolstarControls = ({
   viewport2Loaded,
   setViewport1Loaded,
   setViewport2Loaded,
+  isOpen,
+  onOpenChange,
 }: MolstarControlsProps) => {
   const topologyInputRef = React.useRef<HTMLInputElement | null>(null);
   const trajectoryInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -71,12 +102,15 @@ const MolstarControls = ({
     topology: null,
     trajectory: null,
   });
+
   const onTopologyBtnClick = () => {
     topologyInputRef.current?.click();
   };
+
   const onTrajectoryBtnClick = () => {
     trajectoryInputRef.current?.click();
   };
+
   const onTrajectoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (activeViewport === 1) {
       setViewport1Files({
@@ -85,7 +119,6 @@ const MolstarControls = ({
       });
       handlers.onTrajectoryFileSelect(e.target.files![0]);
       setViewport1Loaded(true);
-      console.log("Viewport 1 loaded set to true", viewport1Loaded);
     } else {
       setViewport2Files({
         ...viewport2Files,
@@ -121,282 +154,316 @@ const MolstarControls = ({
   };
 
   return (
-    <div className=" w-1/7  flex flex-col justify-start p-4 ">
-      <div className="flex flex-col space-y-5">
-        {/* --- Hidden Inputs (Unchanged) --- */}
-        <input
-          type="file"
-          accept=".pdb, .gro, .cif, .mmcif"
-          placeholder="Select Topology File"
-          style={{ display: "none" }}
-          ref={topologyInputRef}
-          onChange={onTopologyFileSelect}
-        />
-        <input
-          type="file"
-          accept=".xtc, .dcd"
-          placeholder="Select Trajectory File"
-          style={{ display: "none" }}
-          ref={trajectoryInputRef}
-          onChange={onTrajectoryFileSelect}
-        />
+    <>
+      {/* Hamburger Button - Fixed position */}
 
-        {/* --- File Buttons (Themed) --- */}
-        <button
-          onClick={onTopologyBtnClick}
-          disabled={
-            activeViewport == 1
-              ? viewport1Files.topology !== null
-              : viewport2Files.topology !== null
-          }
-          className={`w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
-        ${
-          !(activeViewport == 1
-            ? viewport1Files.topology
-            : viewport2Files.topology)
-            ? "bg-slate-500 hover:bg-slate-600 focus:ring-slate-400"
-            : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
-        }`}
-        >
-          <span className="whitespace-nowrap overflow-hidden text-ellipsis">
-            {(activeViewport == 1
-              ? viewport1Files.topology
-              : viewport2Files.topology) || "Load Topology File"}
-          </span>
-        </button>
+      <Button
+        variant="outline"
+        size="icon"
+        className={`${
+          !isOpen ? "fixed top-20 left-4 z-50" : "fixed top-20 left-90 z-50"
+        } bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60`}
+        onClick={() => onOpenChange(!isOpen)}
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
 
-        <button
-          onClick={onTrajectoryBtnClick}
-          disabled={
-            activeViewport == 1
-              ? viewport1Files.trajectory !== null
-              : viewport2Files.trajectory !== null
-          }
-          className={`w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
-        ${
-          !(activeViewport == 1
-            ? viewport1Files.trajectory
-            : viewport2Files.trajectory)
-            ? "bg-slate-500 hover:bg-slate-600 focus:ring-slate-400"
-            : "bg-green-600 hover:bg-green-700 focus:ring-green-500"
+      {/* Sidebar */}
+      <div
+        className={`fixed left-0 top-[70px] h-[calc(100vh-70px)] bg-background border-r transition-all duration-300 ease-in-out z-40 ${
+          isOpen ? "w-[400px] translate-x-0" : "w-0 -translate-x-full"
         }`}
-        >
-          <span className="whitespace-nowrap overflow-hidden text-ellipsis">
-            {(activeViewport == 1
-              ? viewport1Files.trajectory
-              : viewport2Files.trajectory) || "Load Trajectory File"}
-          </span>
-        </button>
-        <div className="flex w-full">
-          <button
-            onClick={() => {
-              const targetSetter =
-                activeViewport === 1 ? setViewport1Loaded : setViewport2Loaded;
-              targetSetter((prev) => true);
-              handlers.loadStructureRepresentation();
-              setTopologyFilename(null);
-              setTrajectoryFilename(null);
-              activeViewport == 1 && setActiveViewport(2);
-            }}
-            className="px-3 py-1 w-1/3 text-lg rounded-md cursor-pointer 
-              text-gray-900 dark:text-gray-100 
-              bg-gray-200 dark:bg-gray-800 
-                border border-gray-200 dark:border-gray-700 
-                shadow-[6px_6px_12px_#c5c5c5,-6px_-6px_12px_#fff] 
-                dark:shadow-[6px_6px_12px_#111,-6px_-6px_12px_#2a2a2a] 
-                active:shadow-inner transition-all duration-300"
-          >
-            Load
-          </button>
-          <div className="ml-2 w-2/3 bg-black text-white">
-            <select
-              value={activeViewport}
-              onChange={(e) =>
-                setActiveViewport(Number(e.target.value) as 1 | 2)
-              }
-              className="w-full p-2 border border-gray-300  bg-black rounded-md"
-            >
-              <option
-                value={1}
-                className={`${viewport1Loaded && "text-green-200"}`}
-              >
-                Viewport 1
-              </option>
-              <option
-                value={2}
-                className={`${viewport2Loaded && "text-green-200"}`}
-              >
-                Viewport 2
-              </option>
-            </select>
-          </div>
-        </div>
-        <div className="w-full flex px-0.5 space-x-4">
-          <div className="w-full flex flex-col items-start space-y-2">
-            <label
-              htmlFor="bgColor"
-              className="text-sm text-gray-300 font-semibold"
-            >
-              Frame Count:
-            </label>
-            <div className="w-full h-10 p-1 border border-gray-300 rounded-md cursor-pointer text-xl text-center pt-1">
-              {state.frameCount}
+      >
+        <div className={`w-[400px] h-full ${isOpen ? "block" : "hidden"}`}>
+          <ScrollArea className="h-[calc(100vh-150px)] px-6">
+            <div className="flex flex-col space-y-4 pb-4">
+              {/* Hidden File Inputs */}
+              <input
+                type="file"
+                accept=".pdb, .gro, .cif, .mmcif"
+                style={{ display: "none" }}
+                ref={topologyInputRef}
+                onChange={onTopologyFileSelect}
+              />
+              <input
+                type="file"
+                accept=".xtc, .dcd"
+                style={{ display: "none" }}
+                ref={trajectoryInputRef}
+                onChange={onTrajectoryFileSelect}
+              />
+
+              {/* File Loading Section */}
+              <div className="space-y-3 pt-5">
+                <h3 className="text-sm font-semibold">File Loading</h3>
+
+                <Button
+                  onClick={onTopologyBtnClick}
+                  disabled={
+                    activeViewport === 1
+                      ? viewport1Files.topology !== null
+                      : viewport2Files.topology !== null
+                  }
+                  variant={
+                    activeViewport === 1
+                      ? viewport1Files.topology
+                        ? "default"
+                        : "secondary"
+                      : viewport2Files.topology
+                      ? "default"
+                      : "secondary"
+                  }
+                  className="w-full justify-start"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  <span className="truncate">
+                    {(activeViewport === 1
+                      ? viewport1Files.topology
+                      : viewport2Files.topology) || "Load Topology File"}
+                  </span>
+                </Button>
+
+                <Button
+                  onClick={onTrajectoryBtnClick}
+                  disabled={
+                    activeViewport === 1
+                      ? viewport1Files.trajectory !== null
+                      : viewport2Files.trajectory !== null
+                  }
+                  variant={
+                    activeViewport === 1
+                      ? viewport1Files.trajectory
+                        ? "default"
+                        : "secondary"
+                      : viewport2Files.trajectory
+                      ? "default"
+                      : "secondary"
+                  }
+                  className="w-full justify-start"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  <span className="truncate">
+                    {(activeViewport === 1
+                      ? viewport1Files.trajectory
+                      : viewport2Files.trajectory) || "Load Trajectory File"}
+                  </span>
+                </Button>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      const targetSetter =
+                        activeViewport === 1
+                          ? setViewport1Loaded
+                          : setViewport2Loaded;
+                      targetSetter(true);
+                      handlers.loadStructureRepresentation();
+                      setTopologyFilename(null);
+                      setTrajectoryFilename(null);
+                      activeViewport === 1 && setActiveViewport(2);
+                    }}
+                    className="flex-1"
+                  >
+                    Load Structure
+                  </Button>
+
+                  <Select
+                    value={activeViewport.toString()}
+                    onValueChange={(value) =>
+                      setActiveViewport(Number(value) as 1 | 2)
+                    }
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">
+                        Viewport 1 {viewport1Loaded && "✓"}
+                      </SelectItem>
+                      <SelectItem value="2">
+                        Viewport 2 {viewport2Loaded && "✓"}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Statistics Section */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Statistics</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Frame Count
+                    </Label>
+                    <div className="p-3 rounded-md border bg-muted text-center font-semibold">
+                      {state.frameCount}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Atom Count
+                    </Label>
+                    <div className="p-3 rounded-md border bg-muted text-center font-semibold">
+                      {state.atomcount}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Colors Section */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Colors</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="bgColor" className="text-xs">
+                      Background
+                    </Label>
+                    <input
+                      type="color"
+                      id="bgColor"
+                      value={state.bgColor}
+                      onChange={handlers.onChangeBackgroundColor}
+                      className="w-full h-10 rounded-md border cursor-pointer"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="structureColor" className="text-xs">
+                      Structure
+                    </Label>
+                    <input
+                      type="color"
+                      id="structureColor"
+                      value={state.structureColor}
+                      onChange={handlers.onChangeStructureColor}
+                      className="w-full h-10 rounded-md border cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Animation Controls */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Animation</h3>
+
+                <Button
+                  onClick={handlers.toggleTragractoryAnimation}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  Toggle Trajectory
+                </Button>
+
+                <Button
+                  onClick={handlers.onToggleSpin}
+                  variant={state.isSpinning ? "destructive" : "outline"}
+                  className="w-full"
+                >
+                  {state.isSpinning ? (
+                    <>
+                      <Square className="mr-2 h-4 w-4" />
+                      Stop Spin
+                    </>
+                  ) : (
+                    <>
+                      <RotateCw className="mr-2 h-4 w-4" />
+                      Start Spin
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* View Controls */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">View Controls</h3>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Representation</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      const event = {
+                        target: { value },
+                      } as React.ChangeEvent<HTMLSelectElement>;
+                      handlers.onSetRepresentation(event);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Representation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {state.representationTypes.map(([type, label]) => (
+                        <SelectItem key={type} value={type}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">View Mode</Label>
+                  <Select onValueChange={handlers.handleViewModeChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select view mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="perspective">Perspective</SelectItem>
+                      <SelectItem value="orthographic">Orthographic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  onClick={handlers.onToggleStereoView}
+                  variant={state.isStereoEnabled ? "destructive" : "outline"}
+                  className="w-full"
+                >
+                  {state.isStereoEnabled ? (
+                    <>
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      Disable Stereo
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="mr-2 h-4 w-4" />
+                      Enable Stereo
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handlers.onRecenterView}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <RotateCw className="mr-2 h-4 w-4" />
+                  Recenter View
+                </Button>
+
+                <Button
+                  onClick={handlers.handleFullScreenToggle}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Maximize2 className="mr-2 h-4 w-4" />
+                  Full Screen
+                </Button>
+              </div>
             </div>
-          </div>
-
-          <div className="w-full flex flex-col items-start space-y-2">
-            <label
-              htmlFor="structureColor"
-              className="text-sm text-gray-300 font-semibold"
-            >
-              Atom Count:
-            </label>
-            <div className="w-full h-10 p-1 border border-gray-300 rounded-md cursor-pointer text-center text-xl pt-1">
-              {state.atomcount}
-            </div>
-          </div>
+          </ScrollArea>
         </div>
-        {/* --- Color Pickers (Aligned & Styled) --- */}
-        <div className="w-full flex px-0.5 space-x-4">
-          <div className="w-full flex flex-col items-start space-y-2">
-            <label
-              htmlFor="bgColor"
-              className="text-sm text-gray-300 font-semibold"
-            >
-              BG Color
-            </label>
-            <input
-              type="color"
-              id="bgColor"
-              value={state.bgColor}
-              onChange={handlers.onChangeBackgroundColor}
-              className="w-full h-10 p-1 border border-gray-300 rounded-md cursor-pointer"
-            />
-          </div>
-
-          <div className="w-full flex flex-col items-start space-y-2">
-            <label
-              htmlFor="structureColor"
-              className="text-sm text-gray-300 font-semibold"
-            >
-              Structure Color
-            </label>
-            <input
-              type="color"
-              id="structureColor"
-              value={state.structureColor}
-              onChange={handlers.onChangeStructureColor}
-              className="w-full h-10 p-1 border border-gray-300 rounded-md cursor-pointer"
-            />
-          </div>
-        </div>
-        <button
-          onClick={handlers.toggleTragractoryAnimation}
-          className={`w-full inline-flex items-center bg-blue-600 justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
-          `}
-        >
-          Toggle Trajectory Animation
-        </button>
-        {/* --- Stereo Toggle (Themed) --- */}
-        <button
-          onClick={handlers.onToggleStereoView}
-          className={`w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
-        ${
-          state.isStereoEnabled
-            ? "bg-red-400 hover:bg-red-500 focus:ring-red-200"
-            : "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
-        }`}
-        >
-          {state.isStereoEnabled ? "Disable Stereo View" : "Enable Stereo View"}
-        </button>
-        {/* --- Spin Toggle (Themed) --- */}
-        <button
-          onClick={handlers.onToggleSpin}
-          className={`w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
-        ${
-          state.isSpinning
-            ? "bg-red-400 hover:bg-red-500 focus:ring-red-200"
-            : "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
-        }`}
-        >
-          {state.isSpinning ? "Stop Spin" : "Start Spin"}
-        </button>
-        {/* {state.isSpinning && (
-          <input
-            type="range"
-            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2"
-            min={0}
-            max={1}
-            step={0.02}
-            value={state.rotationSpeed}
-            onChange={(event) => {
-              handlers.setRotationSpeed(parseFloat(event.target.value));
-            }}
-          />
-        )} */}
-        {/* --- Representation Dropdown (Styled) --- */}
-        <div className="w-full flex flex-col items-start space-y-2">
-          <label
-            htmlFor="representation"
-            className="text-sm text-gray-300 font-semibold"
-          >
-            Representation
-          </label>
-          <select
-            id="representation"
-            onChange={handlers.onSetRepresentation}
-            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-          >
-            <option className="bg-black text-gray-50" value="">
-              Select Representation
-            </option>
-            {state.representationTypes.map(([type, label]) => (
-              <option key={type} className="bg-black text-gray-50" value={type}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full flex flex-col items-start space-y-2">
-          <label
-            htmlFor="representation"
-            className="text-sm text-gray-300 font-semibold"
-          >
-            ViewMode
-          </label>
-          <select
-            id="representation"
-            onChange={(e) => handlers.handleViewModeChange(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
-          >
-            <option className="bg-black text-gray-50" disabled value="">
-              Select view
-            </option>
-            {["perspective", "orthographic"].map((type) => (
-              <option key={type} className="bg-black text-gray-50" value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* --- Recenter Button (Themed) --- */}
-        <button
-          onClick={handlers.onRecenterView}
-          className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
-        bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
-        >
-          Recenter View
-        </button>
-        <button
-          onClick={handlers.handleFullScreenToggle}
-          className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white font-medium text-sm transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
-        bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
-        >
-          Full Screen
-        </button>
       </div>
-    </div>
+    </>
   );
 };
+
 export default MolstarControls;
